@@ -1,48 +1,57 @@
 const http = require('http');
 const url = require('url');
 const Utils = require('./modules/utils');
-const MESSAGES = require('./lang/en/en.js');
+const userGreeting = require('./lang/en/en.js');
 const fs = require('fs');
 const dotenv = require('dotenv');
 dotenv.config()
 
+//Create a server class
 class Server {
   static start() {
     const server = http.createServer((req, res) => {
       const parsedUrl = url.parse(req.url, true);
-      if (['/getDate/','/getDate'].indexOf(parsedUrl.pathname)>-1) {
-        const name = parsedUrl.query.name || 'Guest';
+      // Check if pathname includes 'getDate'
+      if (parsedUrl.pathname.includes('getDate')) {
+        const name = parsedUrl.query.name || '';
         const date = Utils.getDate();
-        const message = `<span style="color: blue;">${MESSAGES.greeting.replace('%1', name)} ${date}</span>`;
+        const message = `<span style="color: blue;">${userGreeting.greeting.replace('%1', name)} ${date}</span>`;
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(message);
-      } else if (['/writeFile/','/writeFile'].indexOf(parsedUrl.pathname)>-1) {
+      } 
+      // Check if pathname includes 'writeFile'
+      else if (parsedUrl.pathname.includes('writeFile')) {
         const text = parsedUrl.query.text;
-          if (text) {
-            fs.appendFile('file.txt', text + '\n', (err) => {
-              if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
-                res.end('Internal Server Error');
-              } else {
-                res.writeHead(200, { 'Content-Type': 'text/plain' });
-                res.end('Text appended to file');
-              }
-            });
-          } else {
-            res.writeHead(400, { 'Content-Type': 'text/plain' });
-            res.end('Bad Request: No text provided');
-          }
-      } else if (parsedUrl.pathname === '/readFile/file.txt') {
-        fs.readFile('file.txt', 'utf8', (err, data) => {
+        if (text) {
+          fs.appendFile('file.txt', text + '\n', (err) => {
+            if (err) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end('Internal Server Error');
+            } else {
+              res.writeHead(200, { 'Content-Type': 'text/plain' });
+              res.end('Text appended to file');
+            }
+          });
+        } else {
+          res.writeHead(400, { 'Content-Type': 'text/plain' });
+          res.end('Bad Request: No text provided');
+        }
+      } 
+      // Check if pathname starts with '/readFile/'
+      else if (parsedUrl.pathname.startsWith('/readFile/')) {
+        const fileName = parsedUrl.pathname.replace('/readFile/', ''); // Extract file name from URL
+        fs.readFile(fileName, 'utf8', (err, data) => {
           if (err) {
             res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('404 Not Found: File does not exist');
+            res.end(`404 Not Found: File "${fileName}" does not exist`);
           } else {
             res.writeHead(200, { 'Content-Type': 'text/plain' });
             res.end(data);
           }
-      });
-      } else {
+        });
+      } 
+      // If none of the above conditions match, return a 404
+      else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
       }
